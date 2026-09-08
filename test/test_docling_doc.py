@@ -2211,3 +2211,49 @@ def test_docitem_comments_delete_updates_refs():
     # The resolved comment should still work
     resolved = updated_para.comments[0].resolve(doc)
     assert resolved.text == "Comment on second paragraph."
+
+
+def test_export_to_markdown_with_image_dir(sample_doc, tmp_path):
+    """image_dir saves the pictures and points the markdown at them."""
+    image_dir = tmp_path / "md_images"
+
+    md = sample_doc.export_to_markdown(image_mode=ImageRefMode.REFERENCED, image_dir=image_dir)
+
+    saved = sorted(image_dir.glob("*.png"))
+    assert len(saved) == 1
+    assert saved[0].name in md.replace("\\", "/")
+
+
+def test_export_to_html_with_image_dir(sample_doc, tmp_path):
+    """image_dir saves the pictures and points the HTML at them."""
+    image_dir = tmp_path / "html_images"
+
+    html = sample_doc.export_to_html(image_mode=ImageRefMode.REFERENCED, image_dir=image_dir)
+
+    saved = sorted(image_dir.glob("*.png"))
+    assert len(saved) == 1
+    assert saved[0].name in html.replace("\\", "/")
+
+
+def test_export_with_image_dir_accepts_str(sample_doc, tmp_path):
+    """image_dir is documented as str | Path, so a str must work too."""
+    image_dir = tmp_path / "str_images"
+
+    md = sample_doc.export_to_markdown(image_mode=ImageRefMode.REFERENCED, image_dir=str(image_dir))
+
+    saved = sorted(image_dir.glob("*.png"))
+    assert len(saved) == 1
+    assert saved[0].name in md.replace("\\", "/")
+
+
+@pytest.mark.parametrize("image_mode", [ImageRefMode.EMBEDDED, ImageRefMode.PLACEHOLDER])
+def test_export_with_image_dir_ignored_unless_referenced(sample_doc, tmp_path, image_mode):
+    """Only ImageRefMode.REFERENCED writes images out; other modes are untouched."""
+    image_dir = tmp_path / "unused_images"
+
+    md = sample_doc.export_to_markdown(image_mode=image_mode, image_dir=image_dir)
+    html = sample_doc.export_to_html(image_mode=image_mode, image_dir=image_dir)
+
+    assert not image_dir.exists()
+    assert md == sample_doc.export_to_markdown(image_mode=image_mode)
+    assert html == sample_doc.export_to_html(image_mode=image_mode)
